@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shelf — Your books</title>
+  <link rel="stylesheet" href="../style/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1><a href="index.html">Shelf</a></h1>
+      <span>a small library of your own</span>
+    </div>
+    <nav class="site-nav">
+      <a href="index.html" class="active">All books</a>
+      <a href="add.html">Add a book</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h2>Your books</h2>
+        <p>Everything you're reading, have read, or want to get to.</p>
+      </div>
+      <a href="add.html" class="btn">+ Add a book</a>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Search by title, author, or genre" />
+      <select id="statusFilter">
+        <option value="">All statuses</option>
+        <option value="want">Want to read</option>
+        <option value="reading">Reading</option>
+        <option value="finished">Finished</option>
+      </select>
+    </div>
+
+    <div id="grid" class="book-grid"></div>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No books here yet</h3>
+      <p>Add the book you're currently reading, or one you've been meaning to start.</p>
+      <a href="add.html" class="btn" style="margin-top:16px;">+ Add a book</a>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const grid = document.getElementById('grid');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('search');
+    const statusFilter = document.getElementById('statusFilter');
+    let debounceTimer = null;
+
+    function render(books) {
+      if (books.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      grid.style.display = 'grid';
+      emptyState.style.display = 'none';
+
+      grid.innerHTML = books.map((b) => `
+        <a class="book-card" href="view.html?id=${encodeURIComponent(b.id)}">
+          <div class="spine status-${b.status}"></div>
+          <div class="book-info">
+            <h3>${escapeHtml(b.title)}</h3>
+            <div class="author">${escapeHtml(b.author)}${b.year ? ` · ${b.year}` : ''}</div>
+            <div class="meta-row">
+              <span class="status-tag status-${b.status}">${statusLabel(b.status)}</span>
+              ${b.rating ? `<span class="stars">${starString(b.rating)}</span>` : ''}
+            </div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    async function load() {
+      try {
+        const params = {};
+        if (searchInput.value.trim()) params.q = searchInput.value.trim();
+        if (statusFilter.value) params.status = statusFilter.value;
+        const books = await api.list(params);
+        render(books);
+      } catch (err) {
+        grid.innerHTML = `<p style="color:var(--danger)">${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(load, 200);
+    });
+    statusFilter.addEventListener('change', load);
+
+    load();
+  </script>
+</body>
+</html>

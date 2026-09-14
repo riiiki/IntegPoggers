@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shelf — Add a book</title>
+  <link rel="stylesheet" href="../style/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1><a href="index.html">Shelf</a></h1>
+      <span>a small library of your own</span>
+    </div>
+    <nav class="site-nav">
+      <a href="index.html">All books</a>
+      <a href="add.html" class="active">Add a book</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h2>Add a book</h2>
+        <p>Log a book you own, are reading, or want to read.</p>
+      </div>
+    </div>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <form class="form-card" id="bookForm">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required />
+      </div>
+      <div class="field">
+        <label for="author">Author</label>
+        <input type="text" id="author" name="author" required />
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="year">Year published</label>
+          <input type="number" id="year" name="year" min="0" max="2100" />
+        </div>
+        <div class="field">
+          <label for="genre">Genre</label>
+          <input type="text" id="genre" name="genre" placeholder="e.g. Fantasy" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="want">Want to read</option>
+          <option value="reading">Reading</option>
+          <option value="finished">Finished</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rating</label>
+        <div class="rating-input" id="ratingInput" data-value="0">
+          <button type="button" data-star="1">★</button>
+          <button type="button" data-star="2">★</button>
+          <button type="button" data-star="3">★</button>
+          <button type="button" data-star="4">★</button>
+          <button type="button" data-star="5">★</button>
+        </div>
+        <div class="hint">Optional — leave unrated if you haven't finished it.</div>
+      </div>
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Thoughts, quotes, where you left off..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Add book</button>
+        <a href="index.html" class="btn secondary">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const form = document.getElementById('bookForm');
+    const errorBanner = document.getElementById('errorBanner');
+    const ratingInput = document.getElementById('ratingInput');
+
+    ratingInput.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-star]');
+      if (!btn) return;
+      const value = Number(btn.dataset.star);
+      const current = Number(ratingInput.dataset.value);
+      const next = value === current ? 0 : value; // click same star again to clear
+      ratingInput.dataset.value = next;
+      [...ratingInput.children].forEach((star, i) => {
+        star.classList.toggle('filled', i < next);
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBanner.classList.remove('visible');
+
+      const data = {
+        title: form.title.value,
+        author: form.author.value,
+        year: form.year.value,
+        genre: form.genre.value,
+        status: form.status.value,
+        rating: ratingInput.dataset.value,
+        notes: form.notes.value,
+      };
+
+      try {
+        const created = await api.create(data);
+        window.location.href = `view.html?id=${encodeURIComponent(created.id)}`;
+      } catch (err) {
+        errorBanner.textContent = (err.errors || ['Something went wrong.']).join(' ');
+        errorBanner.classList.add('visible');
+      }
+    });
+  </script>
+</body>
+</html>

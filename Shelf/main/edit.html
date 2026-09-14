@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shelf — Edit book</title>
+  <link rel="stylesheet" href="../style/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1><a href="index.html">Shelf</a></h1>
+      <span>a small library of your own</span>
+    </div>
+    <nav class="site-nav">
+      <a href="index.html">All books</a>
+      <a href="add.html">Add a book</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h2 id="pageTitle">Edit book</h2>
+        <p>Update the details below.</p>
+      </div>
+    </div>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <form class="form-card" id="bookForm" style="display:none;">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required />
+      </div>
+      <div class="field">
+        <label for="author">Author</label>
+        <input type="text" id="author" name="author" required />
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="year">Year published</label>
+          <input type="number" id="year" name="year" min="0" max="2100" />
+        </div>
+        <div class="field">
+          <label for="genre">Genre</label>
+          <input type="text" id="genre" name="genre" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="want">Want to read</option>
+          <option value="reading">Reading</option>
+          <option value="finished">Finished</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rating</label>
+        <div class="rating-input" id="ratingInput" data-value="0">
+          <button type="button" data-star="1">★</button>
+          <button type="button" data-star="2">★</button>
+          <button type="button" data-star="3">★</button>
+          <button type="button" data-star="4">★</button>
+          <button type="button" data-star="5">★</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Save changes</button>
+        <a href="index.html" class="btn secondary">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const id = getParam('id');
+    const form = document.getElementById('bookForm');
+    const errorBanner = document.getElementById('errorBanner');
+    const ratingInput = document.getElementById('ratingInput');
+
+    function setRating(value) {
+      ratingInput.dataset.value = value;
+      [...ratingInput.children].forEach((star, i) => {
+        star.classList.toggle('filled', i < value);
+      });
+    }
+
+    ratingInput.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-star]');
+      if (!btn) return;
+      const value = Number(btn.dataset.star);
+      const current = Number(ratingInput.dataset.value);
+      setRating(value === current ? 0 : value);
+    });
+
+    async function init() {
+      if (!id) {
+        errorBanner.textContent = 'No book selected to edit.';
+        errorBanner.classList.add('visible');
+        return;
+      }
+      try {
+        const book = await api.get(id);
+        form.title.value = book.title;
+        form.author.value = book.author;
+        form.year.value = book.year ?? '';
+        form.genre.value = book.genre ?? '';
+        form.status.value = book.status;
+        setRating(book.rating || 0);
+        form.notes.value = book.notes ?? '';
+        document.getElementById('pageTitle').textContent = `Edit “${book.title}”`;
+        form.style.display = 'block';
+      } catch (err) {
+        errorBanner.textContent = err.message || 'Could not load this book.';
+        errorBanner.classList.add('visible');
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBanner.classList.remove('visible');
+
+      const data = {
+        title: form.title.value,
+        author: form.author.value,
+        year: form.year.value,
+        genre: form.genre.value,
+        status: form.status.value,
+        rating: ratingInput.dataset.value,
+        notes: form.notes.value,
+      };
+
+      try {
+        await api.update(id, data);
+        window.location.href = `view.html?id=${encodeURIComponent(id)}`;
+      } catch (err) {
+        errorBanner.textContent = (err.errors || ['Something went wrong.']).join(' ');
+        errorBanner.classList.add('visible');
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

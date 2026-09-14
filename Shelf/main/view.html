@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shelf — Book details</title>
+  <link rel="stylesheet" href="../style/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <h1><a href="index.html">Shelf</a></h1>
+      <span>a small library of your own</span>
+    </div>
+    <nav class="site-nav">
+      <a href="index.html">All books</a>
+      <a href="add.html">Add a book</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-heading">
+      <div>
+        <h2>Book details</h2>
+      </div>
+    </div>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <div class="detail-card" id="detailCard" style="display:none;">
+      <div class="spine" id="spine"></div>
+      <div class="detail-body">
+        <h2 id="dTitle"></h2>
+        <div class="author" id="dAuthor"></div>
+
+        <div class="detail-grid">
+          <div>
+            <label>Status</label>
+            <span id="dStatus"></span>
+          </div>
+          <div>
+            <label>Rating</label>
+            <span id="dRating"></span>
+          </div>
+          <div>
+            <label>Year / genre</label>
+            <span id="dMeta"></span>
+          </div>
+        </div>
+
+        <div class="detail-notes" id="dNotes"></div>
+
+        <div class="detail-actions">
+          <a href="index.html" class="btn secondary">Back to all books</a>
+          <a href="#" id="editLink" class="btn">Edit</a>
+          <button class="btn danger" id="deleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="deleteModal">
+    <div class="modal">
+      <h3>Remove this book?</h3>
+      <p id="deleteModalText">This can't be undone.</p>
+      <div class="form-actions">
+        <button class="btn danger" id="confirmDelete">Remove</button>
+        <button class="btn secondary" id="cancelDelete">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const id = getParam('id');
+    const errorBanner = document.getElementById('errorBanner');
+    const detailCard = document.getElementById('detailCard');
+    const deleteModal = document.getElementById('deleteModal');
+
+    async function init() {
+      if (!id) {
+        errorBanner.textContent = 'No book selected.';
+        errorBanner.classList.add('visible');
+        return;
+      }
+      try {
+        const b = await api.get(id);
+        document.getElementById('spine').className = `spine status-${b.status}`;
+        document.getElementById('dTitle').textContent = b.title;
+        document.getElementById('dAuthor').textContent = b.author;
+        document.getElementById('dStatus').innerHTML =
+          `<span class="status-tag status-${b.status}">${statusLabel(b.status)}</span>`;
+        document.getElementById('dRating').innerHTML =
+          b.rating ? `<span class="stars">${starString(b.rating)}</span>` : '<span style="color:var(--ink-soft)">Not rated</span>';
+        document.getElementById('dMeta').textContent =
+          [b.year || null, b.genre || null].filter(Boolean).join(' · ') || '—';
+        document.getElementById('dNotes').textContent = b.notes || 'No notes yet.';
+        document.getElementById('editLink').href = `edit.html?id=${encodeURIComponent(b.id)}`;
+        document.getElementById('deleteModalText').textContent =
+          `“${b.title}” will be removed from your shelf. This can't be undone.`;
+        detailCard.style.display = 'flex';
+      } catch (err) {
+        errorBanner.textContent = err.message || 'Could not load this book.';
+        errorBanner.classList.add('visible');
+      }
+    }
+
+    document.getElementById('deleteBtn').addEventListener('click', () => {
+      deleteModal.classList.add('visible');
+    });
+    document.getElementById('cancelDelete').addEventListener('click', () => {
+      deleteModal.classList.remove('visible');
+    });
+    document.getElementById('confirmDelete').addEventListener('click', async () => {
+      try {
+        await api.remove(id);
+        window.location.href = 'index.html';
+      } catch (err) {
+        deleteModal.classList.remove('visible');
+        errorBanner.textContent = 'Could not delete this book.';
+        errorBanner.classList.add('visible');
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
